@@ -1,4 +1,23 @@
 {
+	"contracts": {
+		"FlowToken": {
+			"source": "./contracts/utility/FungibleToken.cdc",
+			"aliases": {
+				"emulator": "0ae53cb6e3f42a79",
+				"mainnet": "1654653399040a61",
+				"testnet": "7e60df042a9c0868"
+			}
+		},
+		"FungibleToken": {
+			"source": "./contracts/utility/FungibleToken.cdc",
+			"aliases": {
+				"emulator": "ee82856bf20e2aa6",
+				"mainnet": "f233dcee88fe0abe",
+				"testnet": "9a0766d93b6608b7"
+			}
+		},
+		"PettyCash": "./contracts/PettyCash.cdc"
+	},
 	"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
@@ -9,6 +28,27 @@
 		"emulator-account": {
 			"address": "f8d6e0586b0a20c7",
 			"key": "df3ade1ad99aa8e2574171fd9e1b80169647b2771b7743d9910d777237778a61"
+		},
+		"emulator-flow": {
+			"address": "0ae53cb6e3f42a79",
+			"key": "686779d775e5fcbf8d2f4a85cb4c53525d02b7ef53230d180fc16f35d9b7d025"
+		},
+		"emulator-ft": {
+			"address": "ee82856bf20e2aa6",
+			"key": "686779d775e5fcbf8d2f4a85cb4c53525d02b7ef53230d180fc16f35d9b7d025"
+		}
+	},
+	"deployments": {
+		"emulator": {
+			"emulator-account": [
+				"PettyCash"
+			],
+			"emulator-flow": [
+				"FlowToken"
+			],
+			"emulator-ft": [
+				"FungibleToken"
+			]
 		}
 	}
 }
