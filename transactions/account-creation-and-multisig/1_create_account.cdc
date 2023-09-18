@@ -1,8 +1,9 @@
-/// Adds a given key to signing account as ECDSA_P256 & SHA3_256 at 1000.0 weight
+/// Creates a new account, funding creation via the signing account
 ///
 transaction(originatingPublicKey: String) {
-
     prepare(signer: AuthAccount) {
+        let newAccount: AuthAccount = AuthAccount(payer: signer)
+
         // Create a public key for the proxy account from the passed in string
         let key: PublicKey = PublicKey(
             publicKey: originatingPublicKey.decodeHex(),
@@ -10,9 +11,9 @@ transaction(originatingPublicKey: String) {
         )
 
         // Add the key to the new account
-        signer.keys.add(
+        newAccount.keys.add(
             publicKey: key,
-            hashAlgorithm: HashAlgorithm.SHA2_256,
+            hashAlgorithm: HashAlgorithm.SHA3_256,
             weight: 1000.0
         )
     }

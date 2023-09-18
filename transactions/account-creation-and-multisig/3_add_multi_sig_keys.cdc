@@ -15,7 +15,7 @@ transaction(publicKeys: [String], weights: [UFix64]) {
 
             signer.keys.add(
                 publicKey: pubKey,
-                hashAlgorithm: HashAlgorithm.SHA2_256,
+                hashAlgorithm: HashAlgorithm.SHA3_256,
                 weight: weights[i]
             )
         }
