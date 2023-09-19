@@ -41,9 +41,6 @@
 	},
 	"deployments": {
 		"emulator": {
-			"emulator-account": [
-				"PettyCash"
-			],
 			"emulator-flow": [
 				"FlowToken"
 			],
