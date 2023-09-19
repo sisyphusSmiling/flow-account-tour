@@ -8,6 +8,7 @@
 				"testnet": "7e60df042a9c0868"
 			}
 		},
+		"Foo": "./contracts/Foo.cdc",
 		"FungibleToken": {
 			"source": "./contracts/utility/FungibleToken.cdc",
 			"aliases": {

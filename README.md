@@ -335,6 +335,8 @@ sorts of amazing use cases. Next, we'll use Capabilities to delegate access to t
 
 ## Adding Custom Account Functionality
 
+### `PettyCash` Contract Overview
+
 We'll explore adding custom functionality to accounts with contracts and their defined resources.
 
 In the [`PettyCash` contract](./contracts/PettyCash.cdc), we define an `Allowance` resource which enables withdrawals
@@ -352,6 +354,150 @@ funds are actually available in the underlying FungibleToken Vault.
 This is a great illustration of the power of not only composabile standards, but also of how the abstracted account
 model on Flow unlocks powerful customization of user accounts via Capability-based security on contract-defined
 resources.
+
+### Walkthrough
+
+#### Contract Deployment
+
+As before, we'll want to deploy the `PettyCash` contract. We can deploy it to the `foo-emulator` account. Last time,
+we added the contract to our deployment, but this time let's use the Flow CLI command:
+
+```sh
+flow accounts add-contract ./contracts/PettyCash.cdc --signer foo-emulator
+```
+
+Inspecting the account again in Flowview, we see that the contract has been deployed.
+
+![PettyCash deployment](./resources/PettyCashContract.png)
+
+
+#### Transfer FLOW
+
+Before we set a limit on `Allowance`, we of course need to make sure the underlying account has FLOW in its Vault. So
+let's transfer some FLOW to `foo-emulator`:
+
+```sh
+flow transactions send ./transactions/account-creation/0_transfer_flow.cdc 10.0 0x045a1763c93006ca
+```
+
+#### Setting `Allowance.limit`
+
+On deployment, the account is configured with an `Allowance` resource with a starting limit of 0.0. The owner of that
+resource, in this case `foo-emulator`, can update that limit. Let's go ahead and do that:
+
+```sh
+flow transactions send ./transactions/petty-cash/0_set_allowance_limit.cdc 5.0 --signer foo-emulator
+```
+
+Querying for `Allowance.limit`, we can see the change took effect.
+
+```sh
+flow scripts execute ./scripts/petty-cash/get_remaining_allowance.cdc 0x045a1763c93006ca
+```
+
+#### Publish `Allowance` Capability
+
+Now that we have the `Allowance` configured, we can issue a private Capability for use by another account.
+
+This can be done either in a multi-signed transaction where both the `Allowance` owner and the recipient both sign the
+transaction, or we can use the `AuthAccount.Inbox` to first publish the Capability for the recipient to claim in a
+later transaction.
+
+The `Inbox` is a useful feature for issuing private Capabilities, so let's see what that
+[transaction](./transactions/petty-cash/1_publish_recipient.cdc) looks like.
+
+```cadence
+transaction(recipientAddress: Address) {
+    prepare(signer: AuthAccount) {
+        let allowanceCapability = signer.getCapability<&{PettyCash.AllowancePublic, FungibleToken.Provider}>(
+                PettyCash.RecipientPrivatePath
+            )
+        assert(allowanceCapability.check(), message: "Invalid Allowance Capability")
+        signer.inbox.publish(allowanceCapability, name: "FlowTokenAllowance", recipient: recipientAddress)
+    }
+}
+```
+
+Given some recipient Address, we retrieve the desired Capability and ensure its validity. Lastly, we call
+`inbox.publish`, providing the Capability, a name, and the recipient who can later claim the provided Capability.
+
+Let's now run that transaction, providing the default `emulator-account` address as recipient:
+
+```sh
+flow transactions send ./transactions/petty-cash/1_publish_recipient.cdc 0xf8d6e0586b0a20c7 --signer foo-emulator
+```
+
+#### Claiming a Published Capability
+
+With the Capability published, the recipient can now claim and save it to their account. Before we do, we'll take a look at the claim transaction:
+
+```cadence
+transaction(issuerAddress: Address) {
+    prepare(signer: AuthAccount) {
+        // Claim the published Capability
+        let allowanceCapability = signer.inbox.claim<&{PettyCash.AllowancePublic, FungibleToken.Provider}>("FlowTokenAllowance", provider: issuerAddress)
+            ?? panic("No Allowance Capability to claim")
+
+        // Create a new Recipient to store the claimed Capability & save in storage
+        let newRecipient: @PettyCash.Recipient <- PettyCash.createNewRecipient(sourceAllowance: allowanceCapability)
+        signer.save(<-newRecipient, to: PettyCash.RecipientStoragePath)
+    }
+}
+```
+
+The relevant line is:
+
+```cadence
+signer.inbox.claim<&{PettyCash.AllowancePublic, FungibleToken.Provider}>("FlowTokenAllowance", provider: issuerAddress)
+```
+
+Where the signer calls on their inbox to claim the typed Capability from the listed provider under the given name. The
+rest of the transaction above sticks the claimed Capability in a `Recipient` resource and saves it to storage.
+
+So let's run this transaction before finally withdrawing the allowed funds.
+
+```sh
+flow transactions send ./transactions/petty-cash/2_claim_and_configure_recipient.cdc 0x045a1763c93006ca 
+```
+
+> :information_source: Since we're using Emulator, we don't need to list a signer as `emulator-account` is the default
+> signer for our local network.
+
+Checking out `emulator-account` on
+[Flowview](https://emulator.flowview.app/account/0xf8d6e0586b0a20c7/storage/PettyCashRecipient), we see that the
+`Recipient` has been configured.
+
+![PettyCash recipient](./resources/PettyCashRecipient.png)
+
+#### Using `Recipient` to withdraw funds
+
+Finally, we can withdraw allowed funds via the configured `Recipient` in `emulator-account`. In this transaction, the
+funds will be withrawn from `foo-emulator`'s FLOW vault - the same one used to pay for transactions and rent storage. 
+
+However, access via the `Recipient` is gated by the logic defined in `PettyCash`, meaning the withdrawal limit cannot
+exceed that set in `Allowance`.
+
+In fact, we can try to withdraw over the limit we set previously and watch the transaction fail.
+
+```sh
+flow transactions send ./transactions/petty-cash/3_withdraw_allowance_from_recipient.cdc 5.1
+```
+
+```sh
+error: pre-condition failed: Cannot withdraw more than the allowance limit
+  --> 045a1763c93006ca.PettyCash:59:16
+   |
+59 |                 self.withdrawn + amount <= self.limit: "Cannot withdraw more than the allowance limit"
+   |    
+```
+
+So let's withdraw the known limit of 5.0 FLOW:
+
+```sh
+flow transactions send ./transactions/petty-cash/3_withdraw_allowance_from_recipient.cdc 5.0
+```
+
+Try to withdraw again, and you'll see that the transaction fails because we've reached the withdrawal limit.
 
 ## Account Linking
 
