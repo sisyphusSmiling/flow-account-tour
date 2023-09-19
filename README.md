@@ -35,7 +35,7 @@ Enter an account name: genesis-emulator
 Select `Emulator` as our network, and we have a new account on our local emulator network. Easy enough, but to better
 understand what just happened, let's take a closer look at an account creating transaction.
 
-In [1_create_account.cdc](./transactions/account-creation-and-multisig/1_create_account.cdc), we see that account
+In [1_create_account.cdc](./transactions/account-creation/1_create_account.cdc), we see that account
 creation is actually very simple:
 
 ```cadence
@@ -81,7 +81,7 @@ Enough analyzing, let's create the account!
    genesis account so let's transfer some quickly.
 
     ```sh
-    flow transactions send ./transactions/account-creation-and-multisig/0_transfer_flow.cdc 10.0 0xe03daebed8ca0615
+    flow transactions send ./transactions/account-creation/0_transfer_flow.cdc 10.0 0xe03daebed8ca0615
     ```
 
 1. Generate a key pair
@@ -104,7 +104,7 @@ Enough analyzing, let's create the account!
 1. Create the account and add the generated public key
 
     ```sh
-    flow transactions send ./transactions/account-creation-and-multisig/1_create_account.cdc \
+    flow transactions send ./transactions/account-creation/1_create_account.cdc \
         a3802c78bf42a92a6ccb0a0742b57799d0b754442c50b9f44bfaa3ca786fcb65b99d6ec6f0828a728ef7c6a48c7f51b3c206f722ba08701273c5aa717fd8dc49 \
         --signer genesis-emulator
     ```
@@ -269,7 +269,7 @@ returns a `String`.
 ### Account Capabilities
 
 But what does this have to do with accounts? Well, accounts on Flow are not simply mechanisms for verifying transaction
-approval, but they also enable state storage on Flow with both publicly and privately accessible namespace. So, as you
+approval. Accounts enable state storage on Flow with both publicly and privately accessible namespace. So, as you
 can imagine, if `Bar` is stored in an account, we'd want the setter accessible privately. However, exposing `BarPublic`
 in the publicly accessible namespace would enable anyone to reference the underlying `Bar` resource while preserving
 `greeting` mutability access controls to `Bar`'s owner.
@@ -355,6 +355,9 @@ resources.
 
 ## Account Linking
 
+> :information_source: For more info on account linking, check out Flow's [Account Linking home
+> page](https://flow.com/account-linking)
+
 Capabilities enable access to a set of functionality on those objects they target. However, Capabilities are not
 limitted to targetting resources, but can also target account objects themselves.
 
@@ -366,3 +369,4 @@ Account access via Capabilities opens the door to all sorts of unique applicatio
 other accounts, enabling a network of linked accounts. Or, think of a contract that creates any number of accounts and
 maintains access to those accounts via Capabilities. Alternatively, we can have onchain equivalents of multisig schemes,
 allowing us to assign role-based access or time-restricted or other conditional logic.
+
